@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-import { HWBridgeProvider, useWallet, useBalance, useWriteContract, useWatchTransactionReceipt } from '@buidlerlabs/hashgraph-react-wallets'
+import { HWBridgeProvider, useWallet, useBalance, useWriteContract, useWatchTransactionReceipt, useReadContract } from '@buidlerlabs/hashgraph-react-wallets'
 import { HashpackConnector, KabilaConnector } from '@buidlerlabs/hashgraph-react-wallets/connectors'
 import { HederaTestnet } from '@buidlerlabs/hashgraph-react-wallets/chains'
 
@@ -20,21 +20,20 @@ const metadata = {
 }
 
 const WalletBtn = () => {
-  // const { isConnected, connect, disconnect } = useWallet()
-  const { isExtensionRequired, extensionReady, isConnected, connect, disconnect, connector } =
-    useWallet(HashpackConnector)
-  const { data: balance } = useBalance()
-  const userBalance = balance?.formatted ?? '0 ℏ '
+  const { isExtensionRequired, extensionReady, isConnected, connect, disconnect } = useWallet(HashpackConnector);
+  const { data: balance } = useBalance();
+  const userBalance = balance?.formatted ?? '0 ℏ ';
+
   const handleConnect = async () => {
     try {
-      await connect()
+      await connect();
     } catch (error: any) {
-      console.error(error.message)
+      console.error(error.message);
     }
-  }
+  };
 
   if (isExtensionRequired && !extensionReady) {
-    return <span>Extension not found. Pease install it</span>
+    return <span>Extension not found. Please install it</span>;
   }
 
   if (isConnected) {
@@ -43,20 +42,15 @@ const WalletBtn = () => {
         <span className="text-black">{`Balance: ${userBalance}   `}</span>
         <button onClick={disconnect} className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center bg-foreground text-background h-10 px-4">Disconnect</button>
       </div>
-    )
+    );
   }
 
-  return <button onClick={handleConnect} className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center bg-foreground text-background h-10 px-4">Connect</button>
-  // Logic for adding to whitelist
+  return <button onClick={handleConnect} className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center bg-foreground text-background h-10 px-4">Connect</button>;
 };
 
 const AddAccountToWhiteListBtn = ({ accountAddress }: { accountAddress: string }) => {
-  console.log(accountAddress)
-  // const { isConnected, connect, disconnect } = useWallet()
-  const { writeContract } = useWriteContract({
-    connector: HashpackConnector
-  });
-  const { watch } = useWatchTransactionReceipt({ connector: HashpackConnector })
+  const { writeContract } = useWriteContract({ connector: HashpackConnector });
+  const { watch } = useWatchTransactionReceipt({ connector: HashpackConnector });
 
   const handleAddToWhitelist = async () => {
     try {
@@ -64,13 +58,7 @@ const AddAccountToWhiteListBtn = ({ accountAddress }: { accountAddress: string }
         contractId: ContractId.fromString("0.0.5723470"),
         abi: [
           {
-            inputs: [
-              {
-                internalType: 'address',
-                name: 'accountId',
-                type: 'address'
-              }
-            ],
+            inputs: [{ internalType: 'address', name: 'accountId', type: 'address' }],
             name: 'whitelist',
             outputs: [],
             stateMutability: 'nonpayable',
@@ -80,9 +68,8 @@ const AddAccountToWhiteListBtn = ({ accountAddress }: { accountAddress: string }
         functionName: 'whitelist',
         metaArgs: { gas: 120_000 },
         args: [accountAddress as `0x${string}`],
-      })
-      console.log("transactionIdOrHash")
-      console.log(transactionIdOrHash)
+      });
+      console.log(transactionIdOrHash);
 
       watch(transactionIdOrHash?.toString() ?? "", {
         onSuccess: (transaction) => {
@@ -93,21 +80,61 @@ const AddAccountToWhiteListBtn = ({ accountAddress }: { accountAddress: string }
           toast.error(`Error: ${error}`);
           return transaction
         },
-      })
-      // check the transaction status using `useWatchTransactionReceipt`
+      });
     } catch (e) {
-      console.error(e)
-      alert(e)
+      console.error(e);
+      alert(e);
     }
-  }
+  };
 
+  return (
+    <button
+      onClick={handleAddToWhitelist}
+      className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center bg-foreground text-background h-10 px-4">
+      Add to Whitelist
+    </button>
+  );
+};
 
-  return <button
-    onClick={handleAddToWhitelist}
-    className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center bg-foreground text-background h-10 px-4">
-    Add to Whitelist
-  </button>
+const CheckContractMessageBtn = () => {
+  const { readContract } = useReadContract();
+  const [message, setMessage] = useState('');
 
+  const handleCheckMessage = async () => {
+    try {
+      const returnedMessage = await readContract({
+        address: '0x000000000000000000000000000000000057554e',
+        abi: [
+          {
+            inputs: [],
+            name: 'message',
+            outputs: [{ internalType: "string", name: "", type: "string" }],
+            stateMutability: "view",
+            type: "function"
+          },
+        ],
+        functionName: 'message',
+        metaArgs: { gas: 120_000 },
+        args: [],
+      }) as string;
+      setMessage(returnedMessage);
+      console.log(returnedMessage);
+    } catch (e) {
+      console.error(e);
+      alert(e);
+    }
+  };
+
+  return (
+    <div>
+      <button
+        onClick={handleCheckMessage}
+        className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center bg-foreground text-background h-10 px-4">
+        Check Bonus Message
+      </button>
+      <label className="text-black pt-10 pl-4">Message: {message}</label>
+    </div>
+  );
 };
 
 export default function Home() {
@@ -161,7 +188,9 @@ export default function Home() {
               </button>
               <AddAccountToWhiteListBtn accountAddress={accountAddress} />
             </div>
+
           </div>
+          <CheckContractMessageBtn />
         </main>
       </div>
 
