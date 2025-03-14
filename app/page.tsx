@@ -5,10 +5,12 @@ import { ContractId } from "@hashgraph/sdk";
 import { useState } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-
+import Web3 from 'web3';
 import { HWBridgeProvider, useWallet, useBalance, useWriteContract, useWatchTransactionReceipt, useReadContract } from '@buidlerlabs/hashgraph-react-wallets'
 import { HashpackConnector, KabilaConnector } from '@buidlerlabs/hashgraph-react-wallets/connectors'
 import { HederaTestnet } from '@buidlerlabs/hashgraph-react-wallets/chains'
+import axios from "axios"
+
 
 // import DAppLogo from 'public/next.svg'
 
@@ -90,12 +92,89 @@ const AddAccountToWhiteListBtn = ({ accountAddress }: { accountAddress: string }
   return (
     <button
       onClick={handleAddToWhitelist}
-      className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center bg-foreground text-background h-10 px-4">
+      className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center bg-foreground text-background h-10 px-4 w-155">
       Add to Whitelist
     </button>
   );
 };
+const CheckWhiteListeBtn = ({ accountId }: { accountId: string }) => {
+  const { ethereum } = window;
+  const web3 = new Web3(ethereum);
+  const [whiteListedMessage, setCheckWhiteListedMessage] = useState('');
+  const accountIdsSet = new Set<string>();
+  function decodeEvent(eventName: string, log: any, topics: any) {
+    const eventAbi = [{
+      anonymous: false,
+      inputs: [
+        {
+          indexed: false,
+          internalType: "address",
+          name: "accountId",
+          type: "address"
+        }
+      ],
+      name: "WhiteListAccount",
+      type: "event"
+    }]
+    const decodedLog = web3.eth.abi.decodeLog(eventAbi[0].inputs, log, topics);
+    console.log(decodedLog)
+    return decodedLog;
+  }
 
+  const handleCheckWhiteList = async () => {
+    try {
+      setCheckWhiteListedMessage('loading')
+      console.log('loading')
+      const delay = (ms: any) => new Promise((res) => setTimeout(res, ms));
+      console.log(`\nGetting event(s) from mirror`);
+      console.log(`Waiting 10s to allow transaction propagation to mirror`);
+      await delay(10000);
+
+      const url = `https://testnet.mirrornode.hedera.com/api/v1/contracts/0.0.5723470/results/logs?order=asc`;
+
+
+      await axios
+        .get(url)
+        .then(function (response) {
+          const jsonResponse = response.data;
+
+          jsonResponse.logs.forEach((log: any) => {
+            // decode the event data
+            const event = decodeEvent("WhiteListAccount", log.data, log.topics.slice(1));
+
+            accountIdsSet.add(event.accountId as string);
+
+            // output the from address and message stored in the event
+            console.log(
+              `Mirror event(s): accountId '${event.accountId}' update to '${event.message}'`
+            );
+          });
+        })
+      // Check if accountId exists in accountIdsSet
+      if (accountIdsSet.has(accountId)) {
+        setCheckWhiteListedMessage(`${accountId} exists in the accountIdsSet.`);
+      } else {
+        setCheckWhiteListedMessage(`${accountId} does not exist in the accountIdsSet.`);
+      }
+    } catch (e) {
+      console.error(e);
+      alert(e);
+    }
+  };
+
+
+  return (
+    <div >
+      <label className="text-black pt-10 pl-4">Message: {whiteListedMessage}</label>
+
+      <button
+        onClick={handleCheckWhiteList}
+        className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center bg-foreground text-background h-10 px-4 w-155">
+        Check WhiteListed
+      </button>
+    </div >
+  );
+};
 const CheckContractMessageBtn = () => {
   const { readContract } = useReadContract();
   const [message, setMessage] = useState('');
@@ -129,7 +208,7 @@ const CheckContractMessageBtn = () => {
     <div>
       <button
         onClick={handleCheckMessage}
-        className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center bg-foreground text-background h-10 px-4">
+        className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center bg-foreground text-background h-10 px-4 w-155">
         Check Bonus Message
       </button>
       <label className="text-black pt-10 pl-4">Message: {message}</label>
@@ -139,13 +218,6 @@ const CheckContractMessageBtn = () => {
 
 export default function Home() {
   const [accountAddress, setAccountAddress] = useState('');
-
-
-  const handleCheckWhitelisted = async () => {
-    // Logic for checking whitelisted
-  };
-
-
 
   return (
     <HWBridgeProvider
@@ -180,17 +252,11 @@ export default function Home() {
               value={accountAddress}
               onChange={(e) => setAccountAddress(e.target.value)}
             />
-            <div className="flex gap-4">
-              <button
-                onClick={handleCheckWhitelisted}
-                className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center bg-foreground text-background h-10 px-4">
-                Check Whitelisted
-              </button>
-              <AddAccountToWhiteListBtn accountAddress={accountAddress} />
-            </div>
+            <CheckWhiteListeBtn accountId={accountAddress} />
+            <AddAccountToWhiteListBtn accountAddress={accountAddress} />
+            <CheckContractMessageBtn />
 
           </div>
-          <CheckContractMessageBtn />
         </main>
       </div>
 

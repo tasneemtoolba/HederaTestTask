@@ -10,12 +10,18 @@
   },
   "dependencies": {
     "@buidlerlabs/hashgraph-react-wallets": "^2.5.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
     "@hashgraph/sdk": "^2.60.1",
+    "@mui/icons-material": "^6.4.7",
+    "@mui/material": "^6.4.7",
+    "axios": "^1.8.3",
     "dotenv": "^16.4.7",
     "next": "15.2.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-toastify": "^11.0.5"
+    "react-toastify": "^11.0.5",
+    "web3": "^4.16.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
