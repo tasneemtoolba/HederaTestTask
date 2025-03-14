@@ -1,0 +1,96 @@
+{
+    "compiler": {
+        "version": "0.8.29+commit.ab55807c"
+    },
+    "language": "Solidity",
+    "output": {
+        "abi": [
+            {
+                "inputs": [
+                    {
+                        "internalType": "string",
+                        "name": "message_",
+                        "type": "string"
+                    }
+                ],
+                "stateMutability": "nonpayable",
+                "type": "constructor"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": false,
+                        "internalType": "address",
+                        "name": "accountId",
+                        "type": "address"
+                    }
+                ],
+                "name": "WhiteListAccount",
+                "type": "event"
+            },
+            {
+                "inputs": [],
+                "name": "message",
+                "outputs": [
+                    {
+                        "internalType": "string",
+                        "name": "",
+                        "type": "string"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "accountId",
+                        "type": "address"
+                    }
+                ],
+                "name": "whitelist",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            }
+        ],
+        "devdoc": {
+            "kind": "dev",
+            "methods": {},
+            "version": 1
+        },
+        "userdoc": {
+            "kind": "user",
+            "methods": {},
+            "version": 1
+        }
+    },
+    "settings": {
+        "compilationTarget": {
+            "contracts/Whitelist.sol": "Whitelist"
+        },
+        "evmVersion": "cancun",
+        "libraries": {},
+        "metadata": {
+            "bytecodeHash": "ipfs"
+        },
+        "optimizer": {
+            "enabled": false,
+            "runs": 200
+        },
+        "remappings": []
+    },
+    "sources": {
+        "contracts/Whitelist.sol": {
+            "keccak256": "0x7512c930e688ea8c48ce6f537fcf5bc90c5f4d7a5333cd4f31b151ad4dda1a5e",
+            "license": "MIT",
+            "urls": [
+                "bzz-raw://8521e3f36ba86356c47d9800204b406853524f1480ea5d98dbc2a68053860a02",
+                "dweb:/ipfs/QmTEosdBFjJAqH7jTvoB2Y1hvpqs2CbEsRigYf8KZeeTfg"
+            ]
+        }
+    },
+    "version": 1
+}

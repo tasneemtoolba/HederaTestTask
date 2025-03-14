@@ -1,103 +1,170 @@
+'use client';
+
 import Image from "next/image";
+import { ContractId } from "@hashgraph/sdk";
+import { useState } from 'react';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
+import { HWBridgeProvider, useWallet, useBalance, useWriteContract, useWatchTransactionReceipt } from '@buidlerlabs/hashgraph-react-wallets'
+import { HashpackConnector, KabilaConnector } from '@buidlerlabs/hashgraph-react-wallets/connectors'
+import { HederaTestnet } from '@buidlerlabs/hashgraph-react-wallets/chains'
+
+// import DAppLogo from 'public/next.svg'
+
+const metadata = {
+  name: 'Hedera Test Task dApp',
+  description: 'Hedera Test Task dApp',
+  icons: ['public/next.svg'],
+  url: window.location.href,
+}
+
+const WalletBtn = () => {
+  // const { isConnected, connect, disconnect } = useWallet()
+  const { isExtensionRequired, extensionReady, isConnected, connect, disconnect, connector } =
+    useWallet(HashpackConnector)
+  const { data: balance } = useBalance()
+  const userBalance = balance?.formatted ?? '0 ℏ '
+  const handleConnect = async () => {
+    try {
+      await connect()
+    } catch (error: any) {
+      console.error(error.message)
+    }
+  }
+
+  if (isExtensionRequired && !extensionReady) {
+    return <span>Extension not found. Pease install it</span>
+  }
+
+  if (isConnected) {
+    return (
+      <div className="flex items-center">
+        <span className="text-black">{`Balance: ${userBalance}   `}</span>
+        <button onClick={disconnect} className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center bg-foreground text-background h-10 px-4">Disconnect</button>
+      </div>
+    )
+  }
+
+  return <button onClick={handleConnect} className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center bg-foreground text-background h-10 px-4">Connect</button>
+  // Logic for adding to whitelist
+};
+
+const AddAccountToWhiteListBtn = ({ accountAddress }: { accountAddress: string }) => {
+  console.log(accountAddress)
+  // const { isConnected, connect, disconnect } = useWallet()
+  const { writeContract } = useWriteContract({
+    connector: HashpackConnector
+  });
+  const { watch } = useWatchTransactionReceipt({ connector: HashpackConnector })
+
+  const handleAddToWhitelist = async () => {
+    try {
+      const transactionIdOrHash = await writeContract({
+        contractId: ContractId.fromString("0.0.5723470"),
+        abi: [
+          {
+            inputs: [
+              {
+                internalType: 'address',
+                name: 'accountId',
+                type: 'address'
+              }
+            ],
+            name: 'whitelist',
+            outputs: [],
+            stateMutability: 'nonpayable',
+            type: 'function'
+          }
+        ],
+        functionName: 'whitelist',
+        metaArgs: { gas: 120_000 },
+        args: [accountAddress as `0x${string}`],
+      })
+      console.log("transactionIdOrHash")
+      console.log(transactionIdOrHash)
+
+      watch(transactionIdOrHash?.toString() ?? "", {
+        onSuccess: (transaction) => {
+          toast.success("Successfully added to whitelist!");
+          return transaction
+        },
+        onError: (transaction, error) => {
+          toast.error(`Error: ${error}`);
+          return transaction
+        },
+      })
+      // check the transaction status using `useWatchTransactionReceipt`
+    } catch (e) {
+      console.error(e)
+      alert(e)
+    }
+  }
+
+
+  return <button
+    onClick={handleAddToWhitelist}
+    className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center bg-foreground text-background h-10 px-4">
+    Add to Whitelist
+  </button>
+
+};
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [accountAddress, setAccountAddress] = useState('');
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+
+  const handleCheckWhitelisted = async () => {
+    // Logic for checking whitelisted
+  };
+
+
+
+  return (
+    <HWBridgeProvider
+      metadata={metadata}
+      projectId={process.env.NEXT_PUBLIC_PROJECT_ID}
+      connectors={[HashpackConnector, KabilaConnector]}
+      chains={[HederaTestnet]}
+    >
+      <ToastContainer />
+      <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)] bg-white">
+        <div className="absolute top-4 right-4">
+          {/* <button
+          onClick={handleWalletConnection}
+          className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center bg-foreground text-background h-10 px-4">
+          Connect
+        </button> */}
+          <WalletBtn />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+        <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
           <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+            src="./next.svg"
+            alt="Description of image"
+            width={500}
+            height={300}
+            className="mb-4"
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+          <div className="flex flex-col gap-4">
+            <input
+              type="text"
+              placeholder="Enter address"
+              className="border rounded p-2 placeholder:text-gray-500 text-black"
+              value={accountAddress}
+              onChange={(e) => setAccountAddress(e.target.value)}
+            />
+            <div className="flex gap-4">
+              <button
+                onClick={handleCheckWhitelisted}
+                className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center bg-foreground text-background h-10 px-4">
+                Check Whitelisted
+              </button>
+              <AddAccountToWhiteListBtn accountAddress={accountAddress} />
+            </div>
+          </div>
+        </main>
+      </div>
+
+    </HWBridgeProvider>
   );
 }
