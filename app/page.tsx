@@ -18,7 +18,7 @@ const metadata = {
   name: 'Hedera Test Task dApp',
   description: 'Hedera Test Task dApp',
   icons: ['public/next.svg'],
-  url: window.location.href,
+  url: 'https://hedera-test-task.vercel.app/',
 }
 
 const WalletBtn = () => {
@@ -53,8 +53,17 @@ const WalletBtn = () => {
 const AddAccountToWhiteListBtn = ({ accountAddress }: { accountAddress: string }) => {
   const { writeContract } = useWriteContract({ connector: HashpackConnector });
   const { watch } = useWatchTransactionReceipt({ connector: HashpackConnector });
+  const { isExtensionRequired, extensionReady, isConnected, connect, disconnect } = useWallet(HashpackConnector);
 
   const handleAddToWhitelist = async () => {
+    if (isExtensionRequired && !extensionReady) {
+      alert('please install hashpack')
+      return;
+    }
+    if (!isConnected) { 
+      alert('please connect to your wallet first, connect button is on the top right of the page')
+      return;
+    }
     try {
       const transactionIdOrHash = await writeContract({
         contractId: ContractId.fromString("0.0.5723470"),
@@ -85,7 +94,7 @@ const AddAccountToWhiteListBtn = ({ accountAddress }: { accountAddress: string }
       });
     } catch (e) {
       console.error(e);
-      alert(e);
+      // alert(e);
     }
   };
 
@@ -152,9 +161,9 @@ const CheckWhiteListeBtn = ({ accountId }: { accountId: string }) => {
         })
       // Check if accountId exists in accountIdsSet
       if (accountIdsSet.has(accountId)) {
-        setCheckWhiteListedMessage(`${accountId} exists in the accountIdsSet.`);
+        setCheckWhiteListedMessage(`${accountId} is whitelisted.`);
       } else {
-        setCheckWhiteListedMessage(`${accountId} does not exist in the accountIdsSet.`);
+        setCheckWhiteListedMessage(`${accountId} is not whitelisted.`);
       }
     } catch (e) {
       console.error(e);
@@ -217,6 +226,9 @@ const CheckContractMessageBtn = () => {
 };
 
 export default function Home() {
+  // console.log("window.location.href")
+  // console.log(window.location.href)
+
   const [accountAddress, setAccountAddress] = useState('');
 
   return (
