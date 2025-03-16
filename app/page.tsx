@@ -11,8 +11,8 @@ import { HashpackConnector, KabilaConnector } from '@buidlerlabs/hashgraph-react
 import { HederaTestnet } from '@buidlerlabs/hashgraph-react-wallets/chains'
 import axios from "axios"
 
-
-// import DAppLogo from 'public/next.svg'
+const CONTRACT_ID = "0.0.5723470";
+const GAS_LIMIT = 120_000;
 
 const metadata = {
   name: 'Hedera Test Task dApp',
@@ -31,11 +31,12 @@ const WalletBtn = () => {
       await connect();
     } catch (error: any) {
       console.error(error.message);
+      toast.error("Connection failed. Please try again.");
     }
   };
 
   if (isExtensionRequired && !extensionReady) {
-    return <span>Extension not found. Please install it</span>;
+    return <span className="text-black">Extension not found. Please install it</span>;
   }
 
   if (isConnected) {
@@ -50,140 +51,89 @@ const WalletBtn = () => {
   return <button onClick={handleConnect} className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center bg-foreground text-background h-10 px-4">Connect</button>;
 };
 
-const AddAccountToWhiteListBtn = ({ accountAddress }: { accountAddress: string }) => {
+const WhitelistButton = ({ accountAddress, actionType }: { accountAddress: string; actionType: 'add' | 'check' }) => {
   const { writeContract } = useWriteContract({ connector: HashpackConnector });
   const { watch } = useWatchTransactionReceipt({ connector: HashpackConnector });
-  const { isExtensionRequired, extensionReady, isConnected, connect, disconnect } = useWallet(HashpackConnector);
+  const { isExtensionRequired, extensionReady, isConnected } = useWallet(HashpackConnector);
+  const [message, setMessage] = useState('');
 
-  const handleAddToWhitelist = async () => {
-    if (isExtensionRequired && !extensionReady) {
-      alert('please install hashpack')
-      return;
-    }
-    if (!isConnected) { 
-      alert('please connect to your wallet first, connect button is on the top right of the page')
-      return;
-    }
+  const handleAction = async () => {
     try {
-      const transactionIdOrHash = await writeContract({
-        contractId: ContractId.fromString("0.0.5723470"),
-        abi: [
-          {
-            inputs: [{ internalType: 'address', name: 'accountId', type: 'address' }],
-            name: 'whitelist',
-            outputs: [],
-            stateMutability: 'nonpayable',
-            type: 'function'
-          }
-        ],
-        functionName: 'whitelist',
-        metaArgs: { gas: 120_000 },
-        args: [accountAddress as `0x${string}`],
-      });
-      console.log(transactionIdOrHash);
-
-      watch(transactionIdOrHash?.toString() ?? "", {
-        onSuccess: (transaction) => {
-          toast.success("Successfully added to whitelist!");
-          return transaction
-        },
-        onError: (transaction, error) => {
-          toast.error(`Error: ${error}`);
-          return transaction
-        },
-      });
-    } catch (e) {
-      console.error(e);
-      // alert(e);
-    }
-  };
-
-  return (
-    <button
-      onClick={handleAddToWhitelist}
-      className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center bg-foreground text-background h-10 px-4 w-155">
-      Add to Whitelist
-    </button>
-  );
-};
-const CheckWhiteListeBtn = ({ accountId }: { accountId: string }) => {
-  const { ethereum } = window;
-  const web3 = new Web3(ethereum);
-  const [whiteListedMessage, setCheckWhiteListedMessage] = useState('');
-  const accountIdsSet = new Set<string>();
-  function decodeEvent(eventName: string, log: any, topics: any) {
-    const eventAbi = [{
-      anonymous: false,
-      inputs: [
-        {
-          indexed: false,
-          internalType: "address",
-          name: "accountId",
-          type: "address"
+      if (actionType === 'add') {
+        if (isExtensionRequired && !extensionReady) {
+          toast.error('Please install Hashpack');
+          return;
         }
-      ],
-      name: "WhiteListAccount",
-      type: "event"
-    }]
-    const decodedLog = web3.eth.abi.decodeLog(eventAbi[0].inputs, log, topics);
-    console.log(decodedLog)
-    return decodedLog;
-  }
-
-  const handleCheckWhiteList = async () => {
-    try {
-      setCheckWhiteListedMessage('loading')
-      console.log('loading')
-      const delay = (ms: any) => new Promise((res) => setTimeout(res, ms));
-      console.log(`\nGetting event(s) from mirror`);
-      console.log(`Waiting 10s to allow transaction propagation to mirror`);
-      await delay(10000);
-
-      const url = `https://testnet.mirrornode.hedera.com/api/v1/contracts/0.0.5723470/results/logs?order=asc`;
-
-
-      await axios
-        .get(url)
-        .then(function (response) {
-          const jsonResponse = response.data;
-
-          jsonResponse.logs.forEach((log: any) => {
-            // decode the event data
-            const event = decodeEvent("WhiteListAccount", log.data, log.topics.slice(1));
-
-            accountIdsSet.add(event.accountId as string);
-
-            // output the from address and message stored in the event
-            console.log(
-              `Mirror event(s): accountId '${event.accountId}' update to '${event.message}'`
-            );
-          });
-        })
-      // Check if accountId exists in accountIdsSet
-      if (accountIdsSet.has(accountId)) {
-        setCheckWhiteListedMessage(`${accountId} is whitelisted.`);
+        if (!isConnected) {
+          toast.error('Please connect to your wallet first.');
+          return;
+        }
+        
+        const transactionIdOrHash = await writeContract({
+          contractId: ContractId.fromString(CONTRACT_ID),
+          abi: [
+            {
+              inputs: [{ internalType: 'address', name: 'accountId', type: 'address' }],
+              name: 'whitelist',
+              outputs: [],
+              stateMutability: 'nonpayable',
+              type: 'function'
+            }
+          ],
+          functionName: 'whitelist',
+          metaArgs: { gas: GAS_LIMIT },
+          args: [accountAddress as `0x${string}`],
+        });
+        watch(transactionIdOrHash?.toString() ?? "", {
+          onSuccess: (transaction) => {
+            toast.success("Successfully added to whitelist!")
+            return transaction
+          },
+          onError: (transaction, error) => {
+            toast.error(`Error: ${error}`)
+            return transaction
+          },
+        });
       } else {
-        setCheckWhiteListedMessage(`${accountId} is not whitelisted.`);
+        const url = `https://testnet.mirrornode.hedera.com/api/v1/contracts/${CONTRACT_ID}/results/logs?order=asc`;
+        const response = await axios.get(url);
+        const accountIdsSet = new Set<string>();
+        response.data.logs.forEach((log: any) => {
+          const event = decodeEvent("WhiteListAccount", log.data, log.topics.slice(1));
+          accountIdsSet.add(event.accountId as string);
+        });
+        setMessage(accountIdsSet.has(accountAddress) ? `${accountAddress} is whitelisted.` : `${accountAddress} is not whitelisted.`);
       }
     } catch (e) {
       console.error(e);
-      alert(e);
+      toast.error(actionType === 'add' ? "An error occurred while adding to whitelist." : "An error occurred while checking whitelist.");
     }
   };
 
+  const decodeEvent = (eventName: string, log: any, topics: any) => {
+    const { ethereum } = window;
+    const web3 = new Web3(ethereum);
+    const eventAbi = [{
+      anonymous: false,
+      inputs: [{ indexed: false, internalType: "address", name: "accountId", type: "address" }],
+      name: eventName,
+      type: "event"
+    }];
+    return web3.eth.abi.decodeLog(eventAbi[0].inputs, log, topics);
+  };
 
   return (
-    <div >
-      <label className="text-black pt-10 pl-4">Message: {whiteListedMessage}</label>
-
+    <div>
+      {actionType === 'check' && <label className="text-black pt-10 pl-4">Message: {message}</label>}
       <button
-        onClick={handleCheckWhiteList}
+        onClick={handleAction}
         className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center bg-foreground text-background h-10 px-4 w-155">
-        Check WhiteListed
+        {actionType === 'add' ? 'Add to Whitelist' : 'Check WhiteListed'}
       </button>
-    </div >
+    </div>
   );
 };
+
 const CheckContractMessageBtn = () => {
   const { readContract } = useReadContract();
   const [message, setMessage] = useState('');
@@ -202,14 +152,13 @@ const CheckContractMessageBtn = () => {
           },
         ],
         functionName: 'message',
-        metaArgs: { gas: 120_000 },
+        metaArgs: { gas: GAS_LIMIT },
         args: [],
       }) as string;
       setMessage(returnedMessage);
-      console.log(returnedMessage);
     } catch (e) {
       console.error(e);
-      alert(e);
+      toast.error("An error occurred while checking the message.");
     }
   };
 
@@ -226,8 +175,7 @@ const CheckContractMessageBtn = () => {
 };
 
 export default function Home() {
-  // console.log("window.location.href")
-  // console.log(window.location.href)
+
 
   const [accountAddress, setAccountAddress] = useState('');
 
@@ -241,11 +189,6 @@ export default function Home() {
       <ToastContainer />
       <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)] bg-white">
         <div className="absolute top-4 right-4">
-          {/* <button
-          onClick={handleWalletConnection}
-          className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center bg-foreground text-background h-10 px-4">
-          Connect
-        </button> */}
           <WalletBtn />
         </div>
         <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
@@ -264,8 +207,8 @@ export default function Home() {
               value={accountAddress}
               onChange={(e) => setAccountAddress(e.target.value)}
             />
-            <CheckWhiteListeBtn accountId={accountAddress} />
-            <AddAccountToWhiteListBtn accountAddress={accountAddress} />
+            <WhitelistButton accountAddress={accountAddress} actionType="check" />
+            <WhitelistButton accountAddress={accountAddress} actionType="add" />
             <CheckContractMessageBtn />
 
           </div>
