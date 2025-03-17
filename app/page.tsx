@@ -22,7 +22,7 @@ const metadata = {
 }
 
 const WalletBtn = () => {
-  const { isExtensionRequired, isConnected, connect, disconnect } = useWallet(HashpackConnector);
+  const { isExtensionRequired, extensionReady, isConnected, connect, disconnect } = useWallet(HashpackConnector);
   const { data: balance } = useBalance();
   const userBalance = balance?.formatted ?? '0 ℏ ';
 
@@ -35,7 +35,7 @@ const WalletBtn = () => {
     }
   };
 
-  if (isExtensionRequired) {
+  if (isExtensionRequired && !extensionReady) {
     return <span className="text-black">Extension not found. Please install it</span>;
   }
 
@@ -54,13 +54,13 @@ const WalletBtn = () => {
 const WhitelistButton = ({ accountAddress, actionType }: { accountAddress: string; actionType: 'add' | 'check' }) => {
   const { writeContract } = useWriteContract({ connector: HashpackConnector });
   const { watch } = useWatchTransactionReceipt({ connector: HashpackConnector });
-  const { isExtensionRequired, isConnected } = useWallet(HashpackConnector);
+  const { isExtensionRequired, extensionReady, isConnected } = useWallet(HashpackConnector);
   const [message, setMessage] = useState('');
 
   const handleAction = async () => {
     try {
       if (actionType === 'add') {
-        if (isExtensionRequired) {
+        if (isExtensionRequired && !extensionReady) {
           toast.error('Please install Hashpack');
           return;
         }
