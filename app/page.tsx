@@ -100,7 +100,9 @@ const WhitelistButton = ({ accountAddress, actionType }: { accountAddress: strin
         const accountIdsSet = new Set<string>();
         response.data.logs.forEach((log: any) => {
           const event = decodeEvent("WhiteListAccount", log.data, log.topics);
-          if (event.args.accountId) {
+          // @ts-ignore -- Ignoring type check for event.args
+          if (event.args && event.args.accountId) {
+            // @ts-ignore -- Ignoring type check for accountId casting
             accountIdsSet.add(event.args.accountId as string);
           }
         });
