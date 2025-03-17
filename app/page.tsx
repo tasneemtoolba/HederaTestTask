@@ -7,7 +7,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Web3 from 'web3';
 import { HWBridgeProvider, useWallet, useBalance, useWriteContract, useWatchTransactionReceipt, useReadContract } from '@buidlerlabs/hashgraph-react-wallets'
-import { HashpackConnector, KabilaConnector } from '@buidlerlabs/hashgraph-react-wallets/connectors'
+import { HashpackConnector } from '@buidlerlabs/hashgraph-react-wallets/connectors'
 import { HederaTestnet } from '@buidlerlabs/hashgraph-react-wallets/chains'
 import axios from "axios"
 
@@ -183,7 +183,7 @@ export default function Home() {
     <HWBridgeProvider
       metadata={metadata}
       projectId={process.env.NEXT_PUBLIC_PROJECT_ID}
-      connectors={[HashpackConnector, KabilaConnector]}
+      connectors={[HashpackConnector]}
       chains={[HederaTestnet]}
     >
       <ToastContainer />
