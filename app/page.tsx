@@ -5,7 +5,7 @@ import { ContractId } from "@hashgraph/sdk";
 import { useState } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import Web3 from 'web3';
+import { decodeEventLog } from 'viem'
 import { HWBridgeProvider, useWallet, useBalance, useWriteContract, useWatchTransactionReceipt, useReadContract } from '@buidlerlabs/hashgraph-react-wallets'
 import { HWCConnector, HashpackConnector } from '@buidlerlabs/hashgraph-react-wallets/connectors'
 import { HederaTestnet } from '@buidlerlabs/hashgraph-react-wallets/chains'
@@ -22,7 +22,7 @@ const metadata = {
 }
 
 const WalletBtn = () => {
-  const { isExtensionRequired, extensionReady, isConnected, connect, disconnect } = useWallet(HashpackConnector);
+  const { isConnected, connect, disconnect } = useWallet(HashpackConnector);
   const { data: balance } = useBalance();
   const userBalance = balance?.formatted ?? '0 ℏ ';
 
@@ -35,9 +35,9 @@ const WalletBtn = () => {
     }
   };
 
-  if (isExtensionRequired && !extensionReady) {
-    return <span className="text-black">Extension not found. Please install it</span>;
-  }
+  // if (isExtensionRequired && !extensionReady) {
+  //   return <span className="text-black">Extension not found. Please install it</span>;
+  // }
 
   if (isConnected) {
     return (
@@ -54,21 +54,21 @@ const WalletBtn = () => {
 const WhitelistButton = ({ accountAddress, actionType }: { accountAddress: string; actionType: 'add' | 'check' }) => {
   const { writeContract } = useWriteContract({ connector: HashpackConnector });
   const { watch } = useWatchTransactionReceipt({ connector: HashpackConnector });
-  const { isExtensionRequired, extensionReady, isConnected } = useWallet(HashpackConnector);
+  const { isConnected } = useWallet(HashpackConnector);
   const [message, setMessage] = useState('');
 
   const handleAction = async () => {
     try {
       if (actionType === 'add') {
-        if (isExtensionRequired && !extensionReady) {
-          toast.error('Please install Hashpack');
-          return;
-        }
+        // if (isExtensionRequired && !extensionReady) {
+        //   toast.error('Please install Hashpack');
+        //   return;
+        // }
         if (!isConnected) {
           toast.error('Please connect to your wallet first.');
           return;
         }
-        
+
         const transactionIdOrHash = await writeContract({
           contractId: ContractId.fromString(CONTRACT_ID),
           abi: [
@@ -99,8 +99,10 @@ const WhitelistButton = ({ accountAddress, actionType }: { accountAddress: strin
         const response = await axios.get(url);
         const accountIdsSet = new Set<string>();
         response.data.logs.forEach((log: any) => {
-          const event = decodeEvent("WhiteListAccount", log.data, log.topics.slice(1));
-          accountIdsSet.add(event.accountId as string);
+          const event = decodeEvent("WhiteListAccount", log.data, log.topics);
+          if (event.args.accountId) {
+            accountIdsSet.add(event.args.accountId as string);
+          }
         });
         setMessage(accountIdsSet.has(accountAddress) ? `${accountAddress} is whitelisted.` : `${accountAddress} is not whitelisted.`);
       }
@@ -111,15 +113,13 @@ const WhitelistButton = ({ accountAddress, actionType }: { accountAddress: strin
   };
 
   const decodeEvent = (eventName: string, log: any, topics: any) => {
-    const { ethereum } = window;
-    const web3 = new Web3(ethereum);
     const eventAbi = [{
-      anonymous: false,
+      // anonymous: false,
       inputs: [{ indexed: false, internalType: "address", name: "accountId", type: "address" }],
       name: eventName,
       type: "event"
     }];
-    return web3.eth.abi.decodeLog(eventAbi[0].inputs, log, topics);
+    return decodeEventLog({ abi: eventAbi, data: log, topics: topics });
   };
 
   return (
