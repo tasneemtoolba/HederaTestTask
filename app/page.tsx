@@ -7,7 +7,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Web3 from 'web3';
 import { HWBridgeProvider, useWallet, useBalance, useWriteContract, useWatchTransactionReceipt, useReadContract } from '@buidlerlabs/hashgraph-react-wallets'
-import { HashpackConnector } from '@buidlerlabs/hashgraph-react-wallets/connectors'
+import { HWCConnector, HashpackConnector } from '@buidlerlabs/hashgraph-react-wallets/connectors'
 import { HederaTestnet } from '@buidlerlabs/hashgraph-react-wallets/chains'
 import axios from "axios"
 
@@ -22,7 +22,7 @@ const metadata = {
 }
 
 const WalletBtn = () => {
-  const { isExtensionRequired, extensionReady, isConnected, connect, disconnect } = useWallet(HashpackConnector);
+  const { isExtensionRequired, isConnected, connect, disconnect } = useWallet(HashpackConnector);
   const { data: balance } = useBalance();
   const userBalance = balance?.formatted ?? '0 ℏ ';
 
@@ -35,7 +35,7 @@ const WalletBtn = () => {
     }
   };
 
-  if (isExtensionRequired && !extensionReady) {
+  if (isExtensionRequired) {
     return <span className="text-black">Extension not found. Please install it</span>;
   }
 
@@ -54,13 +54,13 @@ const WalletBtn = () => {
 const WhitelistButton = ({ accountAddress, actionType }: { accountAddress: string; actionType: 'add' | 'check' }) => {
   const { writeContract } = useWriteContract({ connector: HashpackConnector });
   const { watch } = useWatchTransactionReceipt({ connector: HashpackConnector });
-  const { isExtensionRequired, extensionReady, isConnected } = useWallet(HashpackConnector);
+  const { isExtensionRequired, isConnected } = useWallet(HashpackConnector);
   const [message, setMessage] = useState('');
 
   const handleAction = async () => {
     try {
       if (actionType === 'add') {
-        if (isExtensionRequired && !extensionReady) {
+        if (isExtensionRequired) {
           toast.error('Please install Hashpack');
           return;
         }
@@ -183,7 +183,7 @@ export default function Home() {
     <HWBridgeProvider
       metadata={metadata}
       projectId={process.env.NEXT_PUBLIC_PROJECT_ID}
-      connectors={[HashpackConnector]}
+      connectors={[HWCConnector, HashpackConnector]}
       chains={[HederaTestnet]}
     >
       <ToastContainer />
